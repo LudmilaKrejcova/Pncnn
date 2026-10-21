@@ -395,38 +395,65 @@ class Rotate(object):
 
 
 class Resize(object):
-    """Resize the the given ``numpy.ndarray`` to the given size.
-    Args:
-        size (sequence or int): Desired output size. If size is a sequence like
-            (h, w), output size will be matched to this. If size is an int,
-            smaller edge of the image will be matched to this number.
-            i.e, if height > width, then image will be rescaled to
-            (size * height / width, size)
-        interpolation (int, optional): Desired interpolation. Default is
-            ``PIL.Image.BILINEAR``
-    """
+    """Resize an array using the original scipy.misc.imresize size rules."""
 
-    def __init__(self, size, interpolation='nearest'):
-        assert isinstance(size, int) or isinstance(size, float) or \
-               (isinstance(size, collections.Iterable) and len(size) == 2)
+    def __init__(self, size, interpolation="nearest"):
         self.size = size
         self.interpolation = interpolation
 
     def __call__(self, img):
-        """
-        Args:
-            img (PIL Image): Image to be scaled.
-        Returns:
-            PIL Image: Rescaled image.
-        """
+        import numpy as np
+        from PIL import Image
+
         if img.ndim == 3:
-            return misc.imresize(img, self.size, self.interpolation)
+            if img.dtype != np.uint8:
+                raise TypeError("RGB input must have dtype uint8.")
+            pilImage = Image.fromarray(img)
         elif img.ndim == 2:
-            return misc.imresize(img, self.size, self.interpolation, 'F')
+            # Preserve floating-point depth values without intensity scaling.
+            pilImage = Image.fromarray(
+                np.asarray(img, dtype=np.float32),
+                mode="F"
+            )
         else:
-            RuntimeError('img should be ndarray with 2 or 3 dimensions. Got {}'.format(img.ndim))
+            raise ValueError("Input must have 2 or 3 dimensions.")
 
+        originalSize = np.array(pilImage.size)
 
+        if isinstance(self.size, (int, np.integer)):
+            outputSize = tuple(
+                (originalSize * (self.size / 100.0)).astype(int)
+            )
+        elif isinstance(self.size, (float, np.floating)):
+            outputSize = tuple(
+                (originalSize * self.size).astype(int)
+            )
+        else:
+            # Input size is (height, width); Pillow expects (width, height).
+            outputSize = (int(self.size[1]), int(self.size[0]))
+
+        if min(outputSize) < 1:
+            raise ValueError("Output dimensions must be positive.")
+
+        interpolationModes = {
+            "nearest": Image.Resampling.NEAREST,
+            "lanczos": Image.Resampling.LANCZOS,
+            "bilinear": Image.Resampling.BILINEAR,
+            "bicubic": Image.Resampling.BICUBIC,
+            "cubic": Image.Resampling.BICUBIC,
+        }
+
+        if self.interpolation not in interpolationModes:
+            raise ValueError(
+                "Unsupported interpolation: {}".format(self.interpolation)
+            )
+
+        resizedImage = pilImage.resize(
+            outputSize,
+            resample=interpolationModes[self.interpolation]
+        )
+        return np.array(resizedImage)
+    
 class CenterCrop(object):
     """Crops the given ``numpy.ndarray`` at the center.
 

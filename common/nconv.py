@@ -21,6 +21,7 @@ import numpy as np
 from scipy.stats import poisson
 from scipy import signal
 import math
+from torch.nn.modules.utils import _pair
 
 
 class NConvUNet(nn.Module):
@@ -103,7 +104,19 @@ class NConv2d(_ConvNd):
     def __init__(self, in_channels, out_channels, kernel_size, pos_fn='softplus', init_method='n', stride=(1,1), padding=(0,0), dilation=(1,1), groups=1, bias=True):
         
         # Call _ConvNd constructor
-        super(NConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, False, (0,0), groups, bias, padding_mode='zeros')
+        super(NConv2d, self).__init__(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=_pair(kernel_size),
+            stride=_pair(stride),
+            padding=_pair(padding),
+            dilation=_pair(dilation),
+            transposed=False,
+            output_padding=(0, 0),
+            groups=groups,
+            bias=bias,
+            padding_mode="zeros",
+        )
         
         self.eps = 1e-20
         self.pos_fn = pos_fn

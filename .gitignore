@@ -1,0 +1,19 @@
+﻿# Local Python environment and caches
+.venv/
+__pycache__/
+*.py[cod]
+
+# Generated model checkpoints
+*.pth
+*.pth.tar
+*.pt
+
+# Experiment outputs
+workspace/**/tb_log/
+workspace/**/train.csv
+workspace/**/test.csv
+workspace/**/best.txt
+
+# Local evaluation and smoke-test experiments
+workspace/nyu/pncnn_local/
+workspace/nyu/pncnn_train_test/

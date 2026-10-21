@@ -51,7 +51,7 @@ def main():
         print('- Loading checkpoint:', chkpt_path)
 
         # Load the checkpoint
-        checkpoint = torch.load(chkpt_path)
+        checkpoint = torch.load(chkpt_path, map_location="cpu")
 
         # Assign some local variables
         args = checkpoint['args']
@@ -64,7 +64,10 @@ def main():
         args.evaluate = chkpt_path
 
         device = torch.device("cuda:" + str(args.gpu) if torch.cuda.is_available() else "cpu")
-        model = checkpoint['model'].to(device)
+        networkModule = importlib.import_module("network")
+        model = networkModule.CNN()
+        model.load_state_dict(checkpoint["model"].state_dict(), strict=True)
+        model = model.to(device)
 
         print_args(args)
 
