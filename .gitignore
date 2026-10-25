@@ -17,3 +17,24 @@ workspace/**/best.txt
 # Local evaluation and smoke-test experiments
 workspace/nyu/pncnn_local/
 workspace/nyu/pncnn_train_test/
+
+# Local environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Training outputs and datasets
+runs/
+sickPrepared/
+tilesPilot/
+tilesFull/
+*.npz
+*.pt
+*.pth
+*.pth.tar
+
+# Local archives and backup files
+pncnn.zip
+requirements-windows.txtck
