@@ -114,7 +114,7 @@ def runEpoch(model, loader, device, scale, optimizer=None, previewPath=None, nor
         lossSum += float(loss.detach()) * count; pixels += count
         error = (prediction.detach() - target) * scale
         for key, mask in [('all', targetValid), ('holes', completion)]:
-            values = error[mask].double()
+            values = error[mask].detach().cpu().double()
             sums[key][0] += float(values.abs().sum())
             sums[key][1] += float(values.square().sum())
             sums[key][2] += values.numel()
@@ -164,7 +164,7 @@ def main():
     parser.add_argument('--val-limit', dest='valLimit', type=int, default=0)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--device', choices=['cuda', 'cpu'], default='cuda')
+    parser.add_argument('--device', choices=['cuda', 'cpu', 'mps'], default='cuda')
     parser.add_argument('--resume', type=Path)
     args = parser.parse_args()
     if args.epochs < 1 or args.batchSize < 1 or min(args.trainLimit, args.valLimit) < 0 or args.lr <= 0:
@@ -183,11 +183,13 @@ def main():
     trainRecords = selectRecords(records, 'train', args.trainLimit, args.seed)
     valRecords = selectRecords(records, 'val', args.valLimit, args.seed)
     if not trainRecords or not valRecords: raise ValueError('Train and validation must be nonempty.')
+    if args.device == 'mps' and not torch.backends.mps.is_available():
+        raise RuntimeError('MPS is unavailable in this Python environment.')
     model = TireModel().to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     startEpoch, best = 0, float('inf')
     if args.resume:
-        checkpoint = torch.load(args.resume, map_location=args.device)
+        checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False)
         if checkpoint['normalization'] != normalization: raise ValueError('Normalization differs from checkpoint.')
         if checkpoint['trainPaths'] != [r['tilePath'] for r in trainRecords] or checkpoint['valPaths'] != [r['tilePath'] for r in valRecords]:
             raise ValueError('Resume requires the same data subset and seed.')

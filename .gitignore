@@ -38,3 +38,6 @@ tilesFull/
 # Local archives and backup files
 pncnn.zip
 requirements-windows.txtck
+
+# Local script backup
+trainTires.py.beforeMps
